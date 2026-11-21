@@ -349,7 +349,53 @@ class TopDownCampus{
  loop(now){const dt=Math.min((now-this.last)/1000,.05);this.last=now;this.update(dt);this.draw();requestAnimationFrame(this.loop);}
  save(){const data={profile:this.profile,player:this.player,elapsed:this.elapsed,mode:this.mode};try{localStorage.setItem("kmd-youth-save",JSON.stringify(data));this.showDialog("保存成功","角色、精力和探索位置已保存在当前设备。");}catch(e){this.showDialog("保存失败","浏览器存储不可用，请检查存储权限。");}}
 }
-function launchGame(){show(gameScreen);$("hud-name").textContent=profile.name;$("hud-grade").textContent=profile.grade;if(game){game=null;}game=new TopDownCampus($("game-canvas"),profile);}
+
+// ===== KMD 青春校园十二章剧情系统（独立于地图坐标，不改动校园布局） =====
+const STORY_CHAPTERS = [
+ {title:"第一章·新的起点",place:"校园大门",body:"九月的风穿过校园。你拖着行李走进校门，广播里传来新生报到的通知。一个抱着文件夹的同学朝你挥手。\n\n林知夏：‘你也是新生吧？我带你去看看教学区。’\n\n你忽然意识到，新的三年就要从今天开始了。",choices:[["主动打招呼，和她一起走",2],["有些拘谨，先熟悉环境",1]]},
+ {title:"第二章·第一次点名",place:"行知楼",body:"班主任周老师在讲台上念着名单。轮到你时，全班的目光短暂地聚集过来。坐在窗边的陈屿把一张课程表递给你。\n\n陈屿：‘先收好，咱们以后可能经常要互相提醒。’\n\n陌生的教室，开始有了熟悉的声音。",choices:[["认真记下每门课的安排",2],["和同桌聊聊班级生活",1]]},
+ {title:"第三章·课间十分钟",place:"教学区",body:"下课铃响起，走廊一下热闹起来。有人讨论社团，有人约着去操场，还有人趴在桌上补觉。林知夏问你想参加什么活动。\n\n你发现，校园生活并不只有课本，还有许多等待尝试的事情。",choices:[["报名志愿服务小组",2],["先去认识更多同学",2]]},
+ {title:"第四章·思源餐厅的午后",place:"思源餐厅",body:"午餐时间，餐厅里充满了交谈声。你端着餐盘寻找空位，陈屿朝你招手。大家聊起家乡、爱吃的菜和刚刚结束的第一节课。\n\n一顿普通的午餐，让陌生的同学慢慢变成朋友。",choices:[["主动邀请大家一起吃饭",2],["认真倾听每个人的故事",2]]},
+ {title:"第五章·操场上的约定",place:"操场",body:"傍晚，操场上有人跑步，有人练球。体育委员发起了班级接力训练。你跑得并不算快，但队友们一直在终点等你。\n\n体育委员：‘重要的不是谁最快，是我们一起跑完全程。’",choices:[["加入接力队，坚持训练",2],["做后勤，为同学加油",1]]},
+ {title:"第六章·文渊馆的安静时光",place:"文渊馆",body:"第一次走进文渊馆，你选了一本散文集坐下。窗外树影轻轻摇晃，书页间夹着一张旧书签，上面写着：‘把平凡的日子过得认真，就是青春。’\n\n你把这句话记在了笔记本上。",choices:[["写下自己的学期目标",2],["把书签留在书里，分享给下一位读者",2]]},
+ {title:"第七章·社团招新日",place:"艺体中心",body:"社团招新摊位排成一列：篮球、摄影、合唱、科技、文学……每个社团都在介绍自己的热爱。你和朋友们各自试了不同的活动，约好一周后再交流体验。",choices:[["选择一个社团认真投入",2],["先体验多个社团再决定",2]]},
+ {title:"第八章·一次小小的误会",place:"青春广场",body:"小组活动前，大家因为分工产生了分歧。有人觉得自己做得太多，也有人担心努力没有被看见。你听完每个人的想法，试着把任务重新分配。\n\n原来，成为朋友不意味着从不争执，而是愿意好好说话。",choices:[["主动沟通，协调分工",2],["先道歉，再一起找办法",2]]},
+ {title:"第九章·格物楼的发现",place:"格物楼",body:"科技社团开放实验室体验。桌上摆着传感器、小车和电路板。指导老师鼓励大家大胆尝试。第一次实验没有成功，大家却因为找到问题而兴奋起来。\n\n你明白了：成长常常藏在一次次重新开始里。",choices:[["留下来继续调试",2],["整理实验记录，帮助团队复盘",2]]},
+ {title:"第十章·青春广场的约定",place:"青春广场",body:"学期渐渐接近尾声。班级决定做一面‘青春留言墙’，每个人写下这一年最想感谢的人和最难忘的事。你看见同学们认真写字的样子，突然觉得时间过得很快。",choices:[["写下对朋友的感谢",2],["写给未来的自己",2]]},
+ {title:"第十一章·属于我们的舞台",place:"杏坛报告厅",body:"校园汇演终于到来。报告厅里灯光亮起，台前的同学有些紧张，台下的掌声却给了大家勇气。你和伙伴们完成了准备已久的节目。\n\n谢幕时，你看见熟悉的面孔都在微笑。",choices:[["和伙伴们一起谢幕",2],["把掌声送给所有幕后同学",2]]},
+ {title:"第十二章·把青春写下去",place:"校园",body:"又一个清晨，你走过熟悉的道路。教学楼、操场、餐厅和图书馆都留下了你的足迹。那些第一次、那些朋友、那些努力过的日子，已经成为青春的一部分。\n\n周老师：‘毕业不是故事的结束，而是你带着这些回忆，继续走向更远的地方。’\n\n《青春纪元》第一季完结。未来的校园日常，仍会继续。",choices:[["珍藏这段回忆",2],["开启自由校园生活",2]]}
+];
+const SIDE_STORIES = [
+ ["课代表的小纸条","去行知楼看看班级公告，帮忙整理一次课程提醒。","行知楼"],
+ ["午餐搭子","去思源餐厅体验一次午餐，和同学聊聊最近的趣事。","思源餐厅"],
+ ["操场慢跑计划","去操场完成一次慢跑，为自己定下运动目标。","操场"],
+ ["书页间的灵感","去文渊馆阅读，记录一句触动自己的话。","文渊馆"],
+ ["社团体验卡","去艺体中心看看社团活动，选择一个感兴趣的方向。","艺体中心"],
+ ["实验室初体验","去格物楼看看实验室，了解一次科技活动。","格物楼"],
+ ["给校园的一封信","去青春广场想一想希望校园变得更好的地方。","青春广场"],
+ ["舞台幕后","去杏坛报告厅看看舞台，了解一次校园演出。","杏坛报告厅"],
+ ["宿舍夜谈","回到弘毅楼或弘德楼，和室友分享今天的经历。","宿舍"],
+ ["校园服务日","去树人楼了解校园事务与志愿服务。","树人楼"],
+ ["运动搭档","去艺体中心或操场邀请同学一起活动。","操场"],
+ ["学期小目标","在任意教学楼的教室里，为自己写下一个学习目标。","教学楼"]
+];
+class YouthStory {
+ constructor(game){this.game=game;this.chapter=0;this.choiceScore=0;this.done=new Set();this.panel=null;this.build();this.refresh();}
+ build(){
+  const root=document.createElement('div');root.id='story-panel';root.className='overlay hidden';root.innerHTML=`<div class="modal story-modal"><button class="close-btn" id="story-close">×</button><div class="story-kicker">KMD · YOUTH CHRONICLE</div><h3 id="story-heading">青春纪元</h3><div class="story-progress"><i id="story-progress-fill"></i></div><p id="story-count"></p><div id="story-copy" class="story-copy"></div><div id="story-choices" class="story-choices"></div><div class="story-tabs"><button id="story-main-tab" class="active">主线章节</button><button id="story-side-tab">校园支线 <span id="side-count"></span></button></div><div id="story-side-list" class="story-side-list hidden"></div></div>`;
+  document.getElementById('game-screen').appendChild(root);this.panel=root;
+  root.querySelector('#story-close').onclick=()=>root.classList.add('hidden');
+  root.querySelector('#story-main-tab').onclick=()=>this.showMain();root.querySelector('#story-side-tab').onclick=()=>this.showSide();
+  const bar=document.querySelector('.action-buttons');if(bar&&!document.getElementById('story-open')){const b=document.createElement('button');b.id='story-open';b.className='action-btn';b.textContent='剧情';b.onclick=()=>{root.classList.remove('hidden');this.showMain();};bar.insertBefore(b,bar.firstChild);}
+ }
+ refresh(){const saved=(()=>{try{return JSON.parse(localStorage.getItem('kmd-youth-story')||'null')}catch(e){return null}})();if(saved){this.chapter=Math.min(12,Math.max(0,saved.chapter||0));this.choiceScore=saved.choiceScore||0;this.done=new Set(saved.done||[]);} }
+ persist(){try{localStorage.setItem('kmd-youth-story',JSON.stringify({chapter:this.chapter,choiceScore:this.choiceScore,done:[...this.done]}));}catch(e){}}
+ showMain(){this.panel.querySelector('#story-main-tab').classList.add('active');this.panel.querySelector('#story-side-tab').classList.remove('active');this.panel.querySelector('#story-side-list').classList.add('hidden');this.panel.querySelector('#story-copy').classList.remove('hidden');this.panel.querySelector('#story-choices').classList.remove('hidden');this.renderChapter();}
+ renderChapter(){const ch=STORY_CHAPTERS[Math.min(this.chapter,11)],finished=this.chapter>=12;this.panel.querySelector('#story-heading').textContent=finished?'青春纪元·第一季完结':ch.title;this.panel.querySelector('#story-count').textContent=finished?'十二章主线已完成 · 你可以继续探索校园支线':`主线进度 ${this.chapter+1} / 12　·　推荐地点：${ch.place}`;this.panel.querySelector('#story-progress-fill').style.width=(this.chapter/12*100)+'%';this.panel.querySelector('#story-copy').textContent=finished?'你已经完成了十二章校园成长故事。感谢你把这段青春写进自己的记忆。选择继续自由探索，完成尚未体验的校园支线吧。':ch.body;const box=this.panel.querySelector('#story-choices');box.innerHTML='';if(finished){const b=document.createElement('button');b.textContent='继续校园生活';b.onclick=()=>this.panel.classList.add('hidden');box.appendChild(b);return;}ch.choices.forEach(([label,score])=>{const b=document.createElement('button');b.textContent=label;b.onclick=()=>{this.choiceScore+=score;this.chapter++;this.persist();this.renderChapter();this.game.showDialog('新的回忆',`你做出了自己的选择。${this.chapter<12?'下一章已解锁。':'十二章主线已全部完成！'}`);};box.appendChild(b);});}
+ showSide(){this.panel.querySelector('#story-side-tab').classList.add('active');this.panel.querySelector('#story-main-tab').classList.remove('active');this.panel.querySelector('#story-copy').classList.add('hidden');this.panel.querySelector('#story-choices').classList.add('hidden');const list=this.panel.querySelector('#story-side-list');list.classList.remove('hidden');list.innerHTML='';SIDE_STORIES.forEach(([title,desc,place],i)=>{const done=this.done.has(i),item=document.createElement('div');item.className='side-item';const t=document.createElement('strong');t.textContent=(done?'✓ ':'○ ')+title;const d=document.createElement('p');d.textContent=desc;const b=document.createElement('button');b.textContent=done?'已完成':'标记完成';b.disabled=done;b.onclick=()=>{this.done.add(i);this.persist();this.showSide();this.game.showDialog('支线完成',`「${title}」已记录到你的青春日记。`);};item.append(t,d,b);list.appendChild(item);});this.panel.querySelector('#side-count').textContent=`${this.done.size}/12`;}
+}
+
+function launchGame(){show(gameScreen);$("hud-name").textContent=profile.name;$("hud-grade").textContent=profile.grade;if(game){game=null;}game=new TopDownCampus($("game-canvas"),profile);game.story=new YouthStory(game);}
 $("dialog-ok").addEventListener("click",()=>$("dialog-panel").classList.add("hidden"));
 document.querySelectorAll("[data-close]").forEach(btn=>btn.addEventListener("click",()=>$(btn.dataset.close).classList.add("hidden")));
 $("map-btn").addEventListener("click",()=>$("map-panel").classList.remove("hidden"));
